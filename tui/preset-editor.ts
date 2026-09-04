@@ -210,13 +210,13 @@ export async function editPreset(
         continue;
       }
     }
-    if (action.id === "settings:raw") {
+    if (action.id === "settingsRaw") {
       await editSettingsRaw(ctx, preset);
       continue;
     }
     const [kind, value] = action.id.split(":");
     if (kind === "group") await toggleGroup(ctx, value as ResourceGroup, preset, config, base);
-    else if (kind === "field") await editSettingField(ctx, preset, value as SettingsField, base);
+    else if (kind === "settings") await editSettingField(ctx, preset, value as SettingsField, base);
   }
 }
 
