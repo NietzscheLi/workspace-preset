@@ -20,9 +20,13 @@
 
 | 命令 | 行为 |
 |---|---|
-| `/preset` | 弹出选择列表（Base + 全部命名 preset），选中即激活 |
-| `/preset <name>` | 直接激活指定 preset（`Base`/`base` 激活空 preset；`status` 查看当前激活项） |
+| `/preset` | 弹出选择列表（Base + 全部命名 preset），选中即激活；无交互式 UI 时显示当前激活项 |
+| `/preset <name>` | 直接激活指定 preset（`base` 激活空 preset） |
+| `/preset status` | 查看当前激活项 |
 | `/preset edit` | 打开 TUI 编辑面板（需要交互式 UI），覆盖 presets.yml 全部配置项 |
+| `/preset help` | 显示可用子命令 |
+
+`status` / `edit` / `help` 为保留子命令名，不能用作 preset 名称。子命令风格与 `provider-status` 的 `/usage` 保持一致。
 
 激活行为：应用 settings（模型/思考等级/工具）→ 生成 `preset-mcp.json` 快照 → 写入项目 `.pi/preset.json` → 若切换了 preset 则调用 `ctx.reload()`（重载 skills/MCP/extensions/packages 生效）。失败时回滚项目选择并报错。
 
@@ -70,21 +74,24 @@ presets:
 
 ## TUI 编辑面板（/preset edit）
 
-主面板按键：**Enter** 编辑选中条目 / **s** 切换激活 / **n** 新建 preset / **d** 删除 preset / **q** 退出。
+两级导航：
 
-面板条目：激活行（切换当前会话 preset，复用 `/preset` 的应用逻辑）、`base 段`、各命名 preset、`resources` 四组注册表。
+- **主面板**：`激活` / `presets` / `base 段` / `resources` / `退出`。`↑↓` 选择，**Enter** 进入，`q` / `Esc` 退出；
+- **presets 分类页**：`＋ 新建 preset` + 命名 preset 列表。`↑↓` 选择，**Enter** 编辑，`s` 激活，`n` 新建，`d` 删除，`Esc` 返回；
+- **resources 分类页**：四个资源组；**Enter** 进入注册表管理（`n` 新增 / **Enter** 编辑定义体 / `d` 删除）；
+- 任意界面按 **?** 打开完整快捷键与说明浮层。
 
 ### 编辑 preset / base
 
-同一张表单：
+第一层为四个 `enable.*` 组、`设置` 分节、`原始 JSON` 与 `保存`；**Enter** 进入分节，**Ctrl+S** 在任意一层保存：
 
 - `enable.*`：多选切换菜单，只允许从 resources 注册表中选择；计数显示合并视图（自身 + 继承）；继承项标记（继承），不可在 preset 层取消（合并语义为拼接），按 Enter 会提示去 base 段操作；
-- `settings` 四个常用字段：输入框预填有效值（自身覆盖 → base 继承）并标记（继承）；留空即恢复继承；确认值与继承值完全一致时不落为自身覆盖；
-- `settings 原始 JSON`：兜底编辑全部设置。
+- `设置`：四个常用字段的字段列表：输入框预填有效值（自身覆盖 → base 继承）并标记（继承）；留空即恢复继承；确认值与继承值完全一致时不落为自身覆盖；
+- `原始 JSON`：兜底编辑全部设置。
 
 ### 编辑 resources
 
-`n` 新增 ID / **Enter** 编辑定义体（对象形态）/ `d` 删除。每次动作立即校验并原子落盘。
+**Enter** 进入资源组后：`n` 新增 ID / **Enter** 编辑定义体（对象形态）/ `d` 删除。每次动作立即校验并原子落盘。
 
 ### 原子性
 

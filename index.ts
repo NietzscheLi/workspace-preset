@@ -52,9 +52,22 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
   };
 
   pi.registerCommand("preset", {
-    description: "Select or inspect the active workspace preset; `edit` opens the TUI presets.yml editor",
+    description: "Activate or inspect a workspace preset; subcommands: status, edit (TUI), help, or a preset name",
     handler: async (args, ctx) => {
-      if (args.trim().toLowerCase() === "edit") {
+      // 子命令风格与 provider-status 对齐：status / edit / help + 领域扩展命令。
+      const USAGE = "usage: /preset [status | edit | help | <name>]";
+      const raw = args.trim();
+      const tokens = raw.split(/\s+/).filter(Boolean);
+      const command = (tokens[0] ?? "").toLowerCase();
+      if (command === "help") {
+        ctx.ui.notify(USAGE, "info");
+        return;
+      }
+      if (command === "status") {
+        ctx.ui.notify(`Preset: ${active ?? "Base"}`, "info");
+        return;
+      }
+      if (command === "edit") {
         if (!ctx.hasUI) {
           ctx.ui.notify("/preset edit 需要交互式 TUI", "warning");
           return;
@@ -63,15 +76,20 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
         await runPresetDashboard(ctx, getAgentDir(), { activate: (name) => activate(ctx, name) });
         return;
       }
-      const config = loadPresetConfig(getAgentDir());
-      const names = Object.keys(config.presets ?? {});
-      const value = args.trim() || (await ctx.ui.select("Select preset", ["Base", ...names]));
-      if (!value) return;
-      if (value.toLowerCase() === "status") {
-        ctx.ui.notify(`Preset: ${active ?? "Base"}`, "info");
+      if (command === "") {
+        if (!ctx.hasUI) {
+          ctx.ui.notify(`Preset: ${active ?? "Base"}`, "info");
+          return;
+        }
+        const config = loadPresetConfig(getAgentDir());
+        const names = Object.keys(config.presets ?? {});
+        const value = await ctx.ui.select("Select preset", ["Base", ...names]);
+        if (!value) return;
+        await activate(ctx, value.toLowerCase() === "base" ? null : value);
         return;
       }
-      await activate(ctx, value.toLowerCase() === "base" ? null : value);
+      // 非保留字则按 preset 名称激活（保持与原行为一致）。
+      await activate(ctx, command === "base" ? null : raw);
     },
   });
 
