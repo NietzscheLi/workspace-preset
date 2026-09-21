@@ -52,10 +52,10 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
   };
 
   pi.registerCommand("preset", {
-    description: "Activate or inspect a workspace preset; subcommands: status, edit (TUI), help, or a preset name",
+    description: "Activate or inspect a workspace preset; subcommands: status, config (TUI), help, or a preset name",
     handler: async (args, ctx) => {
-      // 子命令风格与 provider-status 对齐：status / edit / help + 领域扩展命令。
-      const USAGE = "usage: /preset [status | edit | help | <name>]";
+      // 子命令风格与 provider-status 对齐：status / config / help + 领域扩展命令。
+      const USAGE = "usage: /preset [status | config | help | <name>]";
       const raw = args.trim();
       const tokens = raw.split(/\s+/).filter(Boolean);
       const command = (tokens[0] ?? "").toLowerCase();
@@ -67,9 +67,9 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
         ctx.ui.notify(`Preset: ${active ?? "Base"}`, "info");
         return;
       }
-      if (command === "edit") {
+      if (command === "config" || command === "edit") {
         if (!ctx.hasUI) {
-          ctx.ui.notify("/preset edit 需要交互式 TUI", "warning");
+          ctx.ui.notify(`/preset ${command} 需要交互式 TUI`, "warning");
           return;
         }
         const { runPresetDashboard } = await import("./tui/preset-dashboard.ts");

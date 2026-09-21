@@ -1,5 +1,5 @@
 // /preset 子命令语法回归：与 provider-status 的 /usage 保持同一风格
-// （status / edit / help + 领域扩展）。
+// （status / config / help + 领域扩展）。
 import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -38,7 +38,7 @@ test("/preset help 显示统一用法", async () => {
 	const { invoke, notifications } = setup();
 	await invoke("help");
 	assert.equal(notifications.at(-1)!.level, "info");
-	assert.match(notifications.at(-1)!.message, /usage: \/preset \[status \| edit \| help \| <name>\]/);
+	assert.match(notifications.at(-1)!.message, /usage: \/preset \[status \| config \| help \| <name>\]/);
 });
 
 test("/preset status 与无参无 UI 都显示当前激活项", async () => {
@@ -49,8 +49,11 @@ test("/preset status 与无参无 UI 都显示当前激活项", async () => {
 	assert.equal(notifications.at(-1)!.message, "Preset: Base");
 });
 
-test("/preset edit 在无 UI 时提示需要 TUI", async () => {
+test("/preset config 与别名 edit 在无 UI 时提示需要 TUI", async () => {
 	const { invoke, notifications } = setup();
+	await invoke("config");
+	assert.equal(notifications.at(-1)!.level, "warning");
+	assert.match(notifications.at(-1)!.message, /需要交互式 TUI/);
 	await invoke("edit");
 	assert.equal(notifications.at(-1)!.level, "warning");
 	assert.match(notifications.at(-1)!.message, /需要交互式 TUI/);

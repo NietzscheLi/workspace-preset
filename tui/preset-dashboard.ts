@@ -13,7 +13,7 @@ import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { loadPresetConfig, savePresetConfig } from "../preset-loader.ts";
 import { readProjectPreset } from "../project-selection.ts";
 import { RESOURCE_GROUPS, resourceIds, type ResourceGroup } from "../preset-mutations.ts";
-import { editPreset, editResourceGroup } from "./preset-editor.ts";
+import { editPreset, editResourceGroup, GROUP_LABELS } from "./preset-editor.ts";
 import { padLabel, showOptionPicker, showPersistentShortcutMenu, type MenuCursor, type MenuRow } from "./persistent-menu.ts";
 
 export interface PresetDashboardDeps {
@@ -56,11 +56,11 @@ export async function runPresetDashboard(
 		const presetNames = Object.keys(config.presets ?? {}).sort();
 
 		const rows: MenuRow[] = [
-			{ id: "activate", label: `${padLabel("激活", 14)}当前：${active ?? "Base"}`, searchText: "激活 activate" },
-			{ id: "presets", label: `${padLabel("presets", 14)}${presetNames.length} 个`, searchText: "presets" },
-			{ id: "base", label: `${padLabel("base 段", 14)}全局基础 enable/settings`, searchText: "base" },
-			{ id: "resources", label: `${padLabel("resources", 14)}${totalResources(config)} 项注册`, searchText: "resources" },
-			{ id: "quit", label: "退出" },
+			{ id: "activate", label: `${padLabel("激活", 14)}当前：${active ?? "Base"}`, searchText: "activate 激活" },
+			{ id: "presets", label: `${padLabel("预设列表", 14)}${presetNames.length} 个`, searchText: "presets 预设列表" },
+			{ id: "base", label: `${padLabel("基础段", 14)}全局基础 enable/settings`, searchText: "base 基础段" },
+			{ id: "resources", label: `${padLabel("资源注册表", 14)}${totalResources(config)} 项注册`, searchText: "resources 资源注册表" },
+			{ id: "quit", label: "退出", searchText: "quit 退出" },
 		];
 
 		const action = await showPersistentShortcutMenu<"quit">(
@@ -74,10 +74,10 @@ export async function runPresetDashboard(
 				getContext: () => `激活 ${active ?? "Base"} · version ${config.version}`,
 				getDetailLines: (row) => {
 					switch (row?.id) {
-						case "activate": return ["  切换会应用模型/思考等级/工具设置，并同步 preset-mcp.json 与项目 .pi/preset.json"];
-						case "presets": return ["  命名 preset 列表：编辑 enable/settings，可激活或删除"];
-						case "base": return ["  base 与命名 preset 合并：enable 取并集，settings 中 preset 覆盖 base"];
-						case "resources": return ["  各资源组的已注册 ID；preset 的 enable 只能从这里选择"];
+						case "activate": return ["  activate — 切换会应用模型/思考等级/工具设置，并同步 preset-mcp.json 与项目 .pi/preset.json"];
+						case "presets": return ["  presets — 命名 preset 列表：编辑 enable/settings，可激活或删除"];
+						case "base": return ["  base — base 与命名 preset 合并：enable 取并集，settings 中 preset 覆盖 base"];
+						case "resources": return ["  resources — 各资源组的已注册 ID；preset 的 enable 只能从这里选择"];
 						default: return [];
 					}
 				},
@@ -127,10 +127,10 @@ async function openPresets(
 		const config = loadPresetConfig(agentDir);
 		const names = Object.keys(config.presets ?? {}).sort();
 		const rows: MenuRow[] = [
-			{ id: NEW_ROW, label: "＋ 新建 preset", searchText: "新建 新建preset" },
+			{ id: NEW_ROW, label: "＋ 新建 preset", searchText: "新建 新建 preset" },
 			...names.map((name) => ({
 				id: name,
-				label: `${padLabel(name, 24)}${name === active ? "← 已激活" : "preset"}`,
+				label: `${padLabel(name, 24)}${name === active ? "← 已激活" : "命名 preset"}`,
 				searchText: name,
 			})),
 		];
@@ -228,12 +228,12 @@ async function openResources(ctx: ExtensionCommandContext, agentDir: string): Pr
 		const config = loadPresetConfig(agentDir);
 		const rows: MenuRow[] = RESOURCE_GROUPS.map((group) => ({
 			id: group,
-			label: `${padLabel(`resources.${group}`, 24)}${resourceIds(config, group).length} 项注册`,
-			searchText: group,
+			label: `${padLabel(GROUP_LABELS[group], 14)}${resourceIds(config, group).length} 项注册`,
+			searchText: `${group} ${GROUP_LABELS[group]}`,
 		}));
 		const action = await showPersistentShortcutMenu(
 			ctx,
-			"resources 注册表",
+			"资源注册表",
 			"",
 			rows,
 			cursor,
@@ -244,7 +244,7 @@ async function openResources(ctx: ExtensionCommandContext, agentDir: string): Pr
 					const group = row?.id as ResourceGroup | undefined;
 					if (!group) return [];
 					const ids = resourceIds(config, group);
-					return [`  ${ids.join(", ") || "（空注册表）"}`];
+					return [`  resources.${group} — ${ids.join(", ") || "（空注册表）"}`];
 				},
 				hints: [
 					{ key: "↑↓", label: "选择" },
