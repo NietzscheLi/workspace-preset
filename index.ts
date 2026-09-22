@@ -1,8 +1,9 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { existsSync } from "node:fs";
 import { applyPreset, type OriginalState } from "./preset-application.ts";
-import { ensurePresetConfigFile, loadPresetConfig, resolvePreset } from "./preset-loader.ts";
+import { ensurePresetConfigFile, hasResourceSelectionChanged, loadPresetConfig, resolvePreset } from "./preset-loader.ts";
+import type { PresetConfig, ResolvedPreset } from "./types.ts";
 import { writeMcpSnapshot } from "./mcp-config.ts";
 import { readProjectPreset, writeProjectPreset } from "./project-selection.ts";
 
@@ -16,6 +17,8 @@ async function installMcp(agentDir: string, serverIds: string[], pi: ExtensionAP
 export default function workspacePresetExtension(pi: ExtensionAPI): void {
   let active: string | null = null;
   let original: OriginalState | undefined;
+  // 上次激活时 presets.yml 的签名：预设定义（含 MCP 定义体）变化时保守重载。
+  let lastAppliedConfigSignature: string | undefined;
 
   // 配置缺失时初始化基础 presets.yml；失败不阻断扩展加载（loadPresetConfig 有默认值兑底）。
   try {
@@ -24,14 +27,27 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
     // 初始化失败交由后续读取/保存时报错。
   }
 
-  const refreshStatus = (ctx: Parameters<Parameters<ExtensionAPI["on"]>[1]>[1]) => {
+  const refreshStatus = (ctx: ExtensionContext) => {
     ctx.ui.setStatus("preset", active ? `preset:${active}` : undefined);
   };
 
+  /**
+   * 资源集合（skills/mcp/extensions/packages）是否变化；旧 preset 已删除/无法解析时保守视为变化。
+   */
+  const resourceSelectionChanged = (config: PresetConfig, previous: string | null, target: ResolvedPreset): boolean => {
+    try {
+      return hasResourceSelectionChanged(resolvePreset(config, previous), target);
+    } catch {
+      // 旧 preset 已删除/无法解析：保守重载。
+      return true;
+    }
+  };
+
   // /preset 与 TUI 面板共用的激活逻辑：应用设置、同步 MCP 快照与项目选择，必要时 reload。
-  const activate = async (ctx: Parameters<Parameters<ExtensionAPI["on"]>[1]>[1], name: string | null): Promise<void> => {
+  const activate = async (ctx: ExtensionCommandContext, name: string | null): Promise<void> => {
     const agentDir = getAgentDir();
     const config = loadPresetConfig(agentDir);
+    const configSignature = JSON.stringify(config);
     const target = resolvePreset(config, name);
     const previous = active;
     try {
@@ -40,7 +56,12 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
       writeProjectPreset(ctx.cwd, name);
       active = name;
       refreshStatus(ctx);
-      if (name !== previous) {
+      // presets.yml 内容变化（含 MCP 定义体）或资源集合变化都需要重载；只改 settings 时走轻量路径，
+      // 因为 pi 0.86.0 起会把模型/思考等级/工具的变更写入 transcript 并在 resume/branch 后保持。
+      const signatureChanged = lastAppliedConfigSignature !== configSignature;
+      const resourcesChanged = name !== previous && resourceSelectionChanged(config, previous, target);
+      lastAppliedConfigSignature = configSignature;
+      if (signatureChanged || resourcesChanged) {
         await ctx.reload();
         return;
       }
@@ -97,6 +118,9 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
     const selected = readProjectPreset(ctx.cwd);
     active = selected;
     const config = loadPresetConfig(getAgentDir());
+    // 会话启动已按项目记录安装资源：把当前 presets.yml 记为基线，
+    // 使启动后首次激活同一 preset 不再多一次 ctx.reload()。
+    lastAppliedConfigSignature = JSON.stringify(config);
     const preset = resolvePreset(config, selected);
     writeMcpSnapshot(getAgentDir(), preset, config);
     await installMcp(getAgentDir(), preset.mcp, pi);

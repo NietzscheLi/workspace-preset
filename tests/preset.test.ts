@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { resolvePreset } from "../preset-loader.ts";
+import { hasResourceSelectionChanged, resolvePreset } from "../preset-loader.ts";
 import { readProjectPreset, writeProjectPreset } from "../project-selection.ts";
 import { validatePresetConfig } from "../preset-schema.ts";
 
@@ -32,4 +32,17 @@ test("writes and clears the canonical project selection", () => {
   assert.match(readFileSync(join(cwd, ".pi", "preset.json"), "utf8"), /Vue/);
   writeProjectPreset(cwd, null);
   assert.equal(readProjectPreset(cwd), null);
+});
+
+test("资源选择变化只由 skills/mcp/extensions/packages 决定", () => {
+  const base = { name: null, skills: [], mcp: [], extensions: [], packages: [], settings: {} };
+  // 仅 settings 变化（模型/思考等级/工具）不需要重载运行时。
+  assert.equal(hasResourceSelectionChanged(base, { ...base, settings: { defaultModel: "m" } }), false);
+  // 顺序与重复不影响结论。
+  assert.equal(
+    hasResourceSelectionChanged({ ...base, skills: ["a", "b"] }, { ...base, skills: ["b", "a", "a"] }),
+    false,
+  );
+  assert.equal(hasResourceSelectionChanged(base, { ...base, mcp: ["context7"] }), true);
+  assert.equal(hasResourceSelectionChanged({ ...base, packages: ["p"] }, base), true);
 });

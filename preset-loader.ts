@@ -64,7 +64,7 @@ function assertResourceIds(config: PresetConfig, group: "skills" | "mcp" | "exte
 }
 
 export function resolvePreset(config: PresetConfig, name: string | null): ResolvedPreset {
-  const source: Preset = name ? config.presets?.[name] : undefined;
+  const source: Preset | undefined = name ? config.presets?.[name] : undefined;
   if (name && !source) throw new Error(`Unknown preset: ${name}`);
   const base = config.base ?? {};
   const enable = source?.enable ?? {};
@@ -78,4 +78,15 @@ export function resolvePreset(config: PresetConfig, name: string | null): Resolv
   };
   for (const group of ["skills", "mcp", "extensions", "packages"] as const) assertResourceIds(config, group, resolved[group]);
   return resolved;
+}
+
+/**
+ * 资源选择是否变化（决定是否需要重载运行时）：只看 skills/mcp/extensions/packages，
+ * 忽略模型/思考等级/工具这类会随 transcript 持久化的 settings。
+ */
+export function hasResourceSelectionChanged(left: ResolvedPreset, right: ResolvedPreset): boolean {
+  const normalize = (items: string[]): string => [...new Set(items)].sort().join("\u0000");
+  return (["skills", "mcp", "extensions", "packages"] as const).some(
+    (group) => normalize(left[group]) !== normalize(right[group]),
+  );
 }

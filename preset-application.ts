@@ -17,10 +17,16 @@ export async function applyPreset(pi: ExtensionAPI, ctx: ExtensionContext, prese
   }
   if (typeof preset.settings.defaultThinkingLevel === "string") pi.setThinkingLevel(preset.settings.defaultThinkingLevel as ReturnType<ExtensionAPI["getThinkingLevel"]>);
   if (preset.settings.tools !== undefined) {
+    const tools = preset.settings.tools;
+    if (!Array.isArray(tools) || !tools.every((tool): tool is string => typeof tool === "string")) {
+      throw new Error("tools must be a string array");
+    }
     const available = new Set(pi.getAllTools().map((tool) => tool.name));
-    const unknown = preset.settings.tools.filter((tool) => !available.has(tool));
-    if (unknown.length) throw new Error(`Unknown tools: ${unknown.join(", ")}`);
-    pi.setActiveTools(preset.settings.tools);
+    const unknown = tools.filter((tool) => !available.has(tool));
+    // 未知工具可能由本次切换启用的 extension/package 在 ctx.reload() 后注册：Pi 的 refreshToolRegistry
+    // 会自动并入新注册的工具，因此这里只告警，不阻断激活（否则这类 preset 永远无法激活）。
+    if (unknown.length) ctx.ui.notify(`Tools not loaded yet (applied after reload): ${unknown.join(", ")}`, "warning");
+    pi.setActiveTools(tools);
   }
   return previous;
 }
