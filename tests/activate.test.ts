@@ -1,4 +1,4 @@
-// 激活路径回归：presets.yml 内容变化必须重载；同文件内仅 settings 变化时切换 preset 走轻量路径。
+// 激活路径回归：presets.json 内容变化必须重载；同文件内仅 settings 变化时切换 preset 走轻量路径。
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -8,22 +8,17 @@ import test from "node:test";
 const agentDir = mkdtempSync(join(tmpdir(), "pi-preset-activate-"));
 process.env.PI_CODING_AGENT_DIR = agentDir;
 
-const PRESETS = `version: 1
-resources:
-  mcp: [alpha]
-presets:
-  work:
-    enable: { mcp: [alpha] }
-    settings: { defaultThinkingLevel: low }
-  quiet:
-    enable: { mcp: [alpha] }
-    settings: { defaultThinkingLevel: high }
-  tooling:
-    enable: { mcp: [alpha] }
-    settings: { tools: [read, future-tool] }
-`;
+const PRESETS = `${JSON.stringify({
+	version: 1,
+	resources: { mcp: ["alpha"] },
+	presets: {
+		work: { enable: { mcp: ["alpha"] }, settings: { defaultThinkingLevel: "low" } },
+		quiet: { enable: { mcp: ["alpha"] }, settings: { defaultThinkingLevel: "high" } },
+		tooling: { enable: { mcp: ["alpha"] }, settings: { tools: ["read", "future-tool"] } },
+	},
+}, null, 2)}\n`;
 
-writeFileSync(join(agentDir, "presets.yml"), PRESETS);
+writeFileSync(join(agentDir, "presets.json"), PRESETS);
 writeFileSync(join(agentDir, "mcp-registry.json"), JSON.stringify({ mcpServers: { alpha: { command: "noop" } } }));
 
 const { default: workspacePresetExtension } = await import("../index.ts");
@@ -75,7 +70,7 @@ function setup() {
 
 test("session_start 建立基线：启动后激活同一 preset 不重载", async () => {
 	const harness = setup();
-	writeFileSync(join(agentDir, "presets.yml"), PRESETS);
+	writeFileSync(join(agentDir, "presets.json"), PRESETS);
 	mkdirSync(join(harness.cwd, ".pi"), { recursive: true });
 	writeFileSync(join(harness.cwd, ".pi", "preset.json"), JSON.stringify({ preset: "work" }));
 
@@ -95,7 +90,7 @@ test("尚未加载的工具只告警，不阻断激活", async () => {
 	assert.ok(warning, `expected a warning about future-tool, got: ${harness.notifications.join(" | ")}`);
 });
 
-test("presets.yml 变化触发重载，同文件内的 settings-only 切换不重载", async () => {
+test("presets.json 变化触发重载，同文件内的 settings-only 切换不重载", async () => {
 	const harness = setup();
 
 	// 本会话首次激活：无论资源是否变化都要建立运行时基线。
@@ -107,7 +102,7 @@ test("presets.yml 变化触发重载，同文件内的 settings-only 切换不�
 	assert.equal(harness.reloads(), 1);
 
 	// 只改 settings：文件签名变化必须重载（这是回归保护点）。
-	writeFileSync(join(agentDir, "presets.yml"), PRESETS.replace("defaultThinkingLevel: low", "defaultThinkingLevel: xhigh"));
+	writeFileSync(join(agentDir, "presets.json"), PRESETS.replace('"defaultThinkingLevel": "low"', '"defaultThinkingLevel": "xhigh"'));
 	await harness.invoke("work");
 	assert.equal(harness.reloads(), 2);
 

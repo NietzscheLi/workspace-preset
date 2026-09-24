@@ -1,6 +1,6 @@
 // tui/preset-dashboard.ts
 //
-// presets.yml 编辑主面板：两级导航。
+// presets.json 编辑主面板：两级导航。
 //
 //   主面板  激活 / presets / base 段 / resources / 退出
 //   分类页  presets：＋新建 + 列表（Enter 编辑，s 激活，d 删除）
@@ -65,7 +65,7 @@ export async function runPresetDashboard(
 
 		const action = await showPersistentShortcutMenu<"quit">(
 			ctx,
-			"presets.yml",
+			"presets.json",
 			"",
 			rows,
 			cursor,
@@ -87,7 +87,7 @@ export async function runPresetDashboard(
 					{ key: "q", label: "退出" },
 				],
 				helpLines: [
-					"presets.yml 分三段：resources 注册可用资源，base 是全局基础，presets 是命名配置。",
+					"presets.json 分三段：resources 注册可用资源，base 是全局基础，presets 是命名配置。",
 					"激活 preset 会写入当前项目的 .pi/preset.json。",
 				],
 			},
@@ -165,7 +165,7 @@ async function openPresets(
 					{ key: "d", label: "删除" },
 					{ key: "Esc", label: "返回" },
 				],
-				helpLines: ["删除只从 presets.yml 移除；项目 .pi/preset.json 如引用它会指向不存在的 preset。"],
+				helpLines: ["删除只从 presets.json 移除；项目 .pi/preset.json 如引用它会指向不存在的 preset。"],
 			},
 		);
 		if (action.type === "cancel") return;
@@ -188,7 +188,7 @@ async function openPresets(
 				void ctx.ui.notify("请先选中一个 preset 再按 d", "info");
 				continue;
 			}
-			if (await ctx.ui.confirm(`删除 preset ${selected.id}`, "只从 presets.yml 移除；项目 .pi/preset.json 如引用它会指向不存在的 preset")) {
+			if (await ctx.ui.confirm(`删除 preset ${selected.id}`, "只从 presets.json 移除；项目 .pi/preset.json 如引用它会指向不存在的 preset")) {
 				const latest = loadPresetConfig(agentDir);
 				delete latest.presets?.[selected.id];
 				savePresetConfig(agentDir, latest);

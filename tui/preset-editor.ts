@@ -6,7 +6,7 @@
 //   第二层  资源组 Enter 切换成员；设置 Enter 编辑字段；Ctrl+S 在任意一层保存
 //
 // 行上只显示中文标签，原始键名（enable.* / settings.* / resources.*）在 ? 帮助浮层里给出。
-// settings 提供常用字段 + 原始 JSON 兜底；Ctrl+S 保存整个 presets.yml。
+// settings 提供常用字段 + 原始 JSON 兜底；Ctrl+S 保存整个 presets.json。
 
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import {
@@ -248,7 +248,7 @@ async function editSettingsSection(
 /**
  * 编辑一个 preset（或 base 段）。直接修改传入的 preset 引用；
  * Ctrl+S 时调用 onPersist 落盘（抛错时提示且不退出编辑）。
- * 编辑命名 preset 时传入 base（presets.yml 的 base 段），表单预填继承后的有效值；
+ * 编辑命名 preset 时传入 base（presets.json 的 base 段），表单预填继承后的有效值；
  * 编辑 base 段自身时不传。
  */
 export async function editPreset(
@@ -278,7 +278,7 @@ export async function editPreset(
 			})),
 			{ id: "settings", label: `${padLabel("设置", 14)}${describeSettingsSummary(preset, base)}`, searchText: "settings 设置" },
 			{ id: "settingsRaw", label: `${padLabel("原始 JSON", 14)}编辑全部设置`, searchText: "settings raw 原始 JSON" },
-			{ id: "save", label: `${padLabel("保存", 14)}写入 presets.yml`, searchText: "save 保存 presets.yml" },
+			{ id: "save", label: `${padLabel("保存", 14)}写入 presets.json`, searchText: "save 保存 presets.json" },
 		];
 		const action = await showPersistentFormMenu(ctx, title, "", rows, cursor, {
 			getContext: () => (base ? "继承 base 的有效值 · Ctrl+S 保存" : "base 段 · Ctrl+S 保存"),
@@ -290,7 +290,7 @@ export async function editPreset(
 				}
 				if (row.id === "settings") return ["  settings.* — 包含 defaultProvider / defaultModel / defaultThinkingLevel / tools。"];
 				if (row.id === "settingsRaw") return ["  settings — 直接编辑 settings 段的 JSON，保存后整体替换。"];
-				if (row.id === "save") return ["  presets.yml — 写入磁盘；写入前做 schema 校验。"];
+				if (row.id === "save") return ["  presets.json — 写入磁盘；写入前做 schema 校验。"];
 				return [];
 			},
 			hints: [

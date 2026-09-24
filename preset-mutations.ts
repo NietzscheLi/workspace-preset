@@ -1,6 +1,6 @@
 // preset-mutations.ts
 //
-// presets.yml TUI 编辑的纯逻辑层：资源组注册表读取、enable 开关、settings 字段解析。
+// presets.json TUI 编辑的纯逻辑层：资源组注册表读取、enable 开关、settings 字段解析。
 // 脱离 TUI 可单测；写盘统一走 preset-loader.ts 的 savePresetConfig。
 
 import type { PresetConfig } from "./types.ts";

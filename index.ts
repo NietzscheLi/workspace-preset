@@ -17,10 +17,10 @@ async function installMcp(agentDir: string, serverIds: string[], pi: ExtensionAP
 export default function workspacePresetExtension(pi: ExtensionAPI): void {
   let active: string | null = null;
   let original: OriginalState | undefined;
-  // 上次激活时 presets.yml 的签名：预设定义（含 MCP 定义体）变化时保守重载。
+  // 上次激活时 presets.json 的签名：预设定义（含 MCP 定义体）变化时保守重载。
   let lastAppliedConfigSignature: string | undefined;
 
-  // 配置缺失时初始化基础 presets.yml；失败不阻断扩展加载（loadPresetConfig 有默认值兑底）。
+  // 配置缺失时初始化基础 presets.json；失败不阻断扩展加载。
   try {
     ensurePresetConfigFile(getAgentDir());
   } catch {
@@ -56,7 +56,7 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
       writeProjectPreset(ctx.cwd, name);
       active = name;
       refreshStatus(ctx);
-      // presets.yml 内容变化（含 MCP 定义体）或资源集合变化都需要重载；只改 settings 时走轻量路径，
+      // presets.json 内容变化（含 MCP 定义体）或资源集合变化都需要重载；只改 settings 时走轻量路径，
       // 因为 pi 0.86.0 起会把模型/思考等级/工具的变更写入 transcript 并在 resume/branch 后保持。
       const signatureChanged = lastAppliedConfigSignature !== configSignature;
       const resourcesChanged = name !== previous && resourceSelectionChanged(config, previous, target);
@@ -118,7 +118,7 @@ export default function workspacePresetExtension(pi: ExtensionAPI): void {
     const selected = readProjectPreset(ctx.cwd);
     active = selected;
     const config = loadPresetConfig(getAgentDir());
-    // 会话启动已按项目记录安装资源：把当前 presets.yml 记为基线，
+    // 会话启动已按项目记录安装资源：把当前 presets.json 记为基线，
     // 使启动后首次激活同一 preset 不再多一次 ctx.reload()。
     lastAppliedConfigSignature = JSON.stringify(config);
     const preset = resolvePreset(config, selected);

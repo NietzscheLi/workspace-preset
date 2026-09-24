@@ -25,13 +25,13 @@ function makeDir(): string {
 test("ensurePresetConfigFile 初始化基础配置且不覆盖已有文件", () => {
 	const dir = makeDir();
 	ensurePresetConfigFile(dir);
-	assert.ok(existsSync(join(dir, "presets.yml")));
+	assert.ok(existsSync(join(dir, "presets.json")));
 	const config = loadPresetConfig(dir);
 	assert.equal(config.version, 1);
 	assert.deepEqual(config.resources, {});
 	assert.deepEqual(config.presets, {});
 	// 已有文件不被覆盖。
-	writeFileSync(join(dir, "presets.yml"), "version: 1\npresets:\n  mine: {}\n");
+	writeFileSync(join(dir, "presets.json"), '{"version":1,"presets":{"mine":{}}}');
 	ensurePresetConfigFile(dir);
 	assert.deepEqual(loadPresetConfig(dir).presets, { mine: {} });
 });
@@ -43,9 +43,9 @@ test("savePresetConfig 校验并原子保存", () => {
 	const reread = loadPresetConfig(dir);
 	assert.deepEqual(reread.resources?.skills, ["a", "b"]);
 	// 非法版本被拒绝，文件保持不变。
-	const before = readFileSync(join(dir, "presets.yml"), "utf8");
+	const before = readFileSync(join(dir, "presets.json"), "utf8");
 	assert.throws(() => savePresetConfig(dir, { ...config, version: 2 as unknown as 1 }));
-	assert.equal(readFileSync(join(dir, "presets.yml"), "utf8"), before);
+	assert.equal(readFileSync(join(dir, "presets.json"), "utf8"), before);
 });
 
 test("resourceIds / isObjectRegistry 兼容数组和对象注册表", () => {
